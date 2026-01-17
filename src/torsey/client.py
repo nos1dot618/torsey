@@ -1,6 +1,7 @@
 import hashlib
 import os
 import urllib.parse
+from urllib.error import URLError
 from urllib.request import urlopen
 
 from torsey.bencoding import decode, encode
@@ -31,7 +32,17 @@ def constructTrackerURL(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT):
 
 
 def contactTracker(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT):
-    trackerURL = constructTrackerURL(metadataInfo, port)
-    with urlopen(trackerURL) as response:
-        data = response.read()
+    data = None
+    while data is None:
+        try:
+            with urlopen(constructTrackerURL(metadataInfo, port)) as response:
+                data = response.read()
+                break
+        except URLError:
+            if metadataInfo.announceList is not None:
+                metadataInfo.shiftAnnounce()
+            else:
+                break
+    if data is None:
+        raise Exception("Could not to contact any of the announces.")
     return decode(data)
