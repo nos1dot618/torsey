@@ -1,12 +1,17 @@
 import os
+import socket
+import struct
 import urllib.parse
 from urllib.error import URLError
 from urllib.request import urlopen
 
 from torsey.bencoding import decode
+from torsey.logger import info
 from torsey.metadata_info import MetadataInfo
+from torsey.peer_info import PeerInfo, Peer
 
 DEFAULT_PORT = 6881
+PROTOCOL_STRING = b"BitTorrent protocol"
 
 
 def generatePeerID() -> bytes:
@@ -30,7 +35,7 @@ def constructTrackerURL(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT):
     return f"{announce}?{query}"
 
 
-def contactTracker(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT):
+def contactTracker(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT) -> PeerInfo:
     data = None
     while data is None:
         try:
@@ -44,4 +49,43 @@ def contactTracker(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT):
                 break
     if data is None:
         raise Exception("Could not to contact any of the announces.")
-    return decode(data)
+    return PeerInfo(decode(data))
+
+
+def receiveExact(sock: socket.socket, n: int) -> bytes:
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            raise ConnectionError("Connection closed by the peer")
+        data += chunk
+    return data
+
+
+def handshake(metadataInfo: MetadataInfo, peer: Peer, sock: socket.socket):
+    sock.sendall((
+            struct.pack("B", len(PROTOCOL_STRING)) +
+            PROTOCOL_STRING +
+            b"\x00" * 8 +
+            metadataInfo.getInfoHash() +
+            peer.peerID
+    ))
+    protocolLength = int(receiveExact(sock, 1))
+    assert protocolLength == len(PROTOCOL_STRING)
+    protocol = receiveExact(sock, protocolLength)
+    assert protocol == PROTOCOL_STRING
+    receiveExact(sock, 8)  # Ignore 8 reserved bytes
+    infoHash = receiveExact(sock, 20)
+    assert metadataInfo.getInfoHash() == infoHash
+    peerID = receiveExact(sock, 20)
+    assert peerID == peer.peerID
+
+
+def talkToPeer(metadataInfo: MetadataInfo, peerInfo: PeerInfo):
+    assert peerInfo is not None
+    assert peerInfo.peers is not None
+    assert len(peerInfo.peers) > 0
+    peer = peerInfo.peers[0]
+    sock = socket.create_connection(peer.ip, peer.port)
+    info(f"Connected to peer '{peer.ip}:{peer.port}'.")
+    handshake(metadataInfo, peer, sock)
