@@ -1,4 +1,5 @@
 import unittest
+
 from torsey.bencoding import BdecodeError, decode, encode
 
 

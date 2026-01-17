@@ -3,7 +3,7 @@ import os
 import urllib.parse
 from urllib.request import urlopen
 
-from torsey.bencoding import encode, decode
+from torsey.bencoding import decode, encode
 from torsey.metadata_info import MetadataInfo
 
 DEFAULT_PORT = 6881
