@@ -1,5 +1,5 @@
 import unittest
-from torsey.bencoding import BencodeError, decode, encode
+from torsey.bencoding import BdecodeError, decode, encode
 
 
 class BencodingEncodeTest(unittest.TestCase):
@@ -10,7 +10,7 @@ class BencodingEncodeTest(unittest.TestCase):
         self.assertEqual(encode(-7), b"i-7e")
 
     def testEncodeInvalidInteger(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             encode(True)
 
     def testEncodeString(self):
@@ -33,11 +33,11 @@ class BencodingEncodeTest(unittest.TestCase):
         self.assertEqual(encode({b"spam": [b"a", b"b"]}), b"d4:spaml1:a1:bee")
 
     def testEncodeInvalidDictionaryKey(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             encode({1: b"foo"})
 
     def testEncodeInvalidType(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             encode("spam")
 
 
@@ -48,9 +48,9 @@ class BencodingDecodeTest(unittest.TestCase):
         self.assertEqual(decode(b"i-7e"), -7)
 
     def testInvalidInteger(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"ie")
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"i-0e")
 
     def testDecodeString(self):
@@ -58,11 +58,11 @@ class BencodingDecodeTest(unittest.TestCase):
         self.assertEqual(decode(b"0:"), b"")
 
     def testInvalidStringLength(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"a:spam")
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"3spam")
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"123")
 
     def testDecodeList(self):
@@ -72,7 +72,7 @@ class BencodingDecodeTest(unittest.TestCase):
         self.assertEqual(decode(b"li1ei2eli3eee"), [1, 2, [3]])
 
     def testUnterminatedList(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"l4:spam")
 
     def testDecodeDictionary(self):
@@ -82,19 +82,19 @@ class BencodingDecodeTest(unittest.TestCase):
         self.assertEqual(decode(b"d4:spaml1:a1:bee"), {b"spam": [b"a", b"b"]})
 
     def testInvalidDictionaryKey(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"di1e3:fooe")
 
     def testUnsortedDictionaryKey(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"d3:foo3:bar3:aaa3:bbbe")
 
     def testUnterminatedDictionary(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"d3:key5:value")
 
     def testInvalidPrefix(self):
-        with self.assertRaises(BencodeError):
+        with self.assertRaises(BdecodeError):
             decode(b"x123")
 
     def testTrailingDataIgnoredOrError(self):

@@ -2,6 +2,10 @@ class BencodeError(Exception):
     pass
 
 
+class BdecodeError(Exception):
+    pass
+
+
 class Stream:
     def __init__(self, data: bytes):
         self.data = data
@@ -32,7 +36,7 @@ def encode(data) -> bytes:
         return encodeDictionary(data)
     if isinstance(data, bytes):
         return encodeString(data)
-    raise BencodeError(f"Invalid type '{type(data)}'.")
+    raise BdecodeError(f"Invalid type '{type(data)}'.")
 
 
 def encodeInteger(data: int) -> bytes:
@@ -65,7 +69,7 @@ def decodeNext(stream: Stream):
     try:
         char = stream.peek()
     except StopIteration:
-        raise BencodeError("Unexpected end of stream.")
+        raise BdecodeError("Unexpected end of stream.")
     if char == ord(b"i"):
         stream.next()
         return decodeInteger(stream)
@@ -77,7 +81,7 @@ def decodeNext(stream: Stream):
         return decodeDictionary(stream)
     if ord(b"0") <= char <= ord(b"9"):
         return decodeString(stream)
-    raise BencodeError(f"Invalid bencode prefix '{chr(char)}'.")
+    raise BdecodeError(f"Invalid bencode prefix '{chr(char)}'.")
 
 
 def decodeInteger(stream: Stream) -> int:
@@ -87,10 +91,10 @@ def decodeInteger(stream: Stream) -> int:
         try:
             char = stream.next()
         except StopIteration:
-            raise BencodeError("Unterminated integer.")
+            raise BdecodeError("Unterminated integer.")
         if char == ord(b"e"):
             if len(digits) == 0:
-                raise BencodeError(f"Empty integer.")
+                raise BdecodeError(f"Empty integer.")
             return int("".join(digits))
         digits.append(chr(char))
 
@@ -101,7 +105,7 @@ def decodeList(stream: Stream) -> list:
         try:
             char = stream.peek()
         except StopIteration:
-            raise BencodeError(f"Unterminated list '{items}'.")
+            raise BdecodeError(f"Unterminated list '{items}'.")
         if char == ord(b"e"):
             stream.next()
             return items
@@ -115,16 +119,16 @@ def decodeDictionary(stream: Stream) -> dict:
         try:
             char = stream.peek()
         except:
-            raise BencodeError("Unterminated dictionary.")
+            raise BdecodeError("Unterminated dictionary.")
         if char == ord(b"e"):
             stream.next()
             return items
         key = decodeNext(stream)
         if not isinstance(key, bytes):
-            raise BencodeError(f"Invalid key '{key}', dictionary-key must be bytes.")
+            raise BdecodeError(f"Invalid key '{key}', dictionary-key must be bytes.")
         if previousKey is not None:
             if key < previousKey:
-                raise BencodeError(f"Dictionary-keys are not sorted lexicographically. Found '{previousKey}' > '{key}'")
+                raise BdecodeError(f"Dictionary-keys are not sorted lexicographically. Found '{previousKey}' > '{key}'")
         previousKey = key
         value = decodeNext(stream)
         items[key] = value
@@ -136,12 +140,12 @@ def decodeString(stream: Stream) -> bytes:
         try:
             char = stream.next()
         except StopIteration:
-            raise BencodeError("Unterminated string-length.")
+            raise BdecodeError("Unterminated string-length.")
         if char == ord(b":"):
             break
         if ord(b"0") <= char <= ord(b"9"):
             digits.append(chr(char))
             continue
-        raise BencodeError(f"Invalid character found '{chr(char)}' in string-length declaration.")
+        raise BdecodeError(f"Invalid character found '{chr(char)}' in string-length declaration.")
     length = int("".join(digits))
     return bytes(stream.next() for _ in range(length))

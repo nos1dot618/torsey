@@ -1,6 +1,6 @@
 import tempfile
 from urllib.request import urlopen
-from torsey.bencoding import decode, BencodeError
+from torsey.bencoding import decode, BdecodeError
 from torsey.logger import info
 
 
@@ -12,7 +12,7 @@ def decodeTorrentFile(path: str):
         return decodedData
     except FileNotFoundError:
         raise RuntimeError(f"File not found '{path}'.")
-    except BencodeError as e:
+    except BdecodeError as e:
         raise RuntimeError(f"Invalid torrent file: '{e}'.")
 
 
