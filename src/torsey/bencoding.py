@@ -20,6 +20,43 @@ class Stream:
         return self.data[self.pos]
 
 
+def encode(data) -> bytes:
+    if isinstance(data, bool):
+        # Needed because boolean is a subtype of integer.
+        raise BencodeError("Invalid type 'bool'.")
+    if isinstance(data, int):
+        return encodeInteger(data)
+    if isinstance(data, list):
+        return encodeList(data)
+    if isinstance(data, dict):
+        return encodeDictionary(data)
+    if isinstance(data, bytes):
+        return encodeString(data)
+    raise BencodeError(f"Invalid type '{type(data)}'.")
+
+
+def encodeInteger(data: int) -> bytes:
+    return b"i" + str(data).encode() + b"e"
+
+
+def encodeList(data: list) -> bytes:
+    return b"l" + b"".join(encode(element) for element in data) + b"e"
+
+
+def encodeDictionary(data: dict) -> bytes:
+    encodedItems = []
+    for key in sorted(data.keys()):
+        if not isinstance(key, bytes):
+            raise BencodeError(f"Invalid key '{key}', dictionary-key must be bytes.")
+        encodedItems.append(encodeString(key))
+        encodedItems.append(encode(data[key]))
+    return b"d" + b"".join(encodedItems) + b"e"
+
+
+def encodeString(data: bytes) -> bytes:
+    return str(len(data)).encode() + b":" + data
+
+
 def decode(data: bytes):
     return decodeNext(Stream(data))
 
