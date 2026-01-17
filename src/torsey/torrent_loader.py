@@ -1,6 +1,7 @@
 import tempfile
 from urllib.request import urlopen
-from torsey.bencoding import decode, BdecodeError
+
+from torsey.bencoding import BdecodeError, decode
 from torsey.logger import info
 
 
