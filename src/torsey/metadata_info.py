@@ -1,3 +1,8 @@
+import hashlib
+
+from torsey.bencoding import encode
+
+
 class MetadataInfoParseError(Exception):
     pass
 
@@ -79,7 +84,7 @@ class MetadataInfo:
         else:
             raise MetadataInfoParseError("Torrent must contain 'length' or 'files' inside 'info'.")
 
-    def totalLength(self) -> int:
+    def getLength(self) -> int:
         if self.length is not None:
             return self.length
         elif self.files is not None:
@@ -102,3 +107,6 @@ class MetadataInfo:
 
     def shiftAnnounce(self):
         self.currentAnnounceInTier += 1
+
+    def getInfoHash(self):
+        return hashlib.sha1(encode(self.info)).digest()

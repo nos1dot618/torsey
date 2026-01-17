@@ -1,10 +1,9 @@
-import hashlib
 import os
 import urllib.parse
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from torsey.bencoding import decode, encode
+from torsey.bencoding import decode
 from torsey.metadata_info import MetadataInfo
 
 DEFAULT_PORT = 6881
@@ -18,12 +17,12 @@ def constructTrackerURL(metadataInfo: MetadataInfo, port: int = DEFAULT_PORT):
     announce = metadataInfo.getAnnounce()
     assert announce is not None
     params = {
-        "info_hash": hashlib.sha1(encode(metadataInfo.info)).digest(),
+        "info_hash": metadataInfo.getInfoHash(),
         "peer_id": generatePeerID(),
         "port": port,
         "uploaded": 0,
         "downloaded": 0,
-        "left": metadataInfo.totalLength(),
+        "left": metadataInfo.getLength(),
         "compact": 1,
         "event": "started"
     }
