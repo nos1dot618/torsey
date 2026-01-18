@@ -6,4 +6,4 @@ if __name__ == "__main__":
     decodedFile = decodeTorrentFile("../../resources/test.torrent")
     metadataInfo = MetadataInfo(decodedFile)
     peerInfo = contactTracker(metadataInfo)
-    # talkToPeer(metadataInfo, peerInfo)
+    talkToPeer(metadataInfo, peerInfo)

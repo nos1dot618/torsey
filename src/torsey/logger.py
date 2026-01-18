@@ -5,15 +5,20 @@ def useColor() -> bool:
     return sys.stdout.isatty()
 
 
-def error(message: str):
+def logInternal(ansiColor: str, logLevel: str, message: str):
     if useColor():
-        print(f"[\033[31mERROR\033[0m] {message}")
+        print(f"[{ansiColor}{logLevel}\033[0m] {message}")
     else:
-        print(f"[ERROR] {message}")
+        print(f"[{logLevel}] {message}")
+
+
+def error(message: str):
+    logInternal("\033[31m", "ERROR", message)
 
 
 def info(message: str):
-    if useColor():
-        print(f"[\033[34mINFO\033[0m] {message}")
-    else:
-        print(f"[INFO] {message}")
+    logInternal("\033[34m", "INFO", message)
+
+
+def warning(message: str):
+    logInternal("\033[33m", "WARNING", message)

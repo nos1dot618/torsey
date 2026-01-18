@@ -6,12 +6,13 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from torsey.bencoding import decode
-from torsey.logger import info
+from torsey.logger import info, warning
 from torsey.metadata_info import MetadataInfo
 from torsey.peer_info import PeerInfo, Peer
 
 DEFAULT_PORT = 6881
 PROTOCOL_STRING = b"BitTorrent protocol"
+TCP_TIMEOUT = 5
 
 
 def generatePeerID() -> bytes:
@@ -62,30 +63,35 @@ def receiveExact(sock: socket.socket, n: int) -> bytes:
     return data
 
 
-def handshake(metadataInfo: MetadataInfo, peer: Peer, sock: socket.socket):
+def handshake(metadataInfo: MetadataInfo, peer: Peer, sock: socket.socket) -> bytes:
     sock.sendall((
             struct.pack("B", len(PROTOCOL_STRING)) +
             PROTOCOL_STRING +
-            b"\x00" * 8 +
+            b"\x00\x00\x00\x00\x00\x10\x00\x00" +  # Extension Protocol.
             metadataInfo.getInfoHash() +
             peer.peerID
     ))
-    protocolLength = int(receiveExact(sock, 1))
+    protocolLength = struct.unpack("!B", receiveExact(sock, 1))[0]
     assert protocolLength == len(PROTOCOL_STRING)
     protocol = receiveExact(sock, protocolLength)
     assert protocol == PROTOCOL_STRING
     receiveExact(sock, 8)  # Ignore 8 reserved bytes
     infoHash = receiveExact(sock, 20)
     assert metadataInfo.getInfoHash() == infoHash
-    peerID = receiveExact(sock, 20)
-    assert peerID == peer.peerID
+    return receiveExact(sock, 20)
 
 
 def talkToPeer(metadataInfo: MetadataInfo, peerInfo: PeerInfo):
     assert peerInfo is not None
     assert peerInfo.peers is not None
     assert len(peerInfo.peers) > 0
-    peer = peerInfo.peers[0]
-    sock = socket.create_connection(peer.ip, peer.port)
-    info(f"Connected to peer '{peer.ip}:{peer.port}'.")
-    handshake(metadataInfo, peer, sock)
+    for peer in peerInfo.peers:
+        try:
+            sock = socket.create_connection((peer.ip, peer.port), timeout=TCP_TIMEOUT)
+            sock.settimeout(TCP_TIMEOUT)
+            info(f"Connected to peer '{peer.ip}:{peer.port}' with ID '{peer.peerID}'")
+            remotePeerID = handshake(metadataInfo, peer, sock)
+        except (TimeoutError, OSError) as e:
+            warning(f"Failed to connect to peer '{peer.ip}:{peer.port}' with ID '{peer.peerID}'")
+            continue
+        raise RuntimeError("No usable peers found")
